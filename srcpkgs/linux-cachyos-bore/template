@@ -47,7 +47,6 @@ mutable_files="
  /usr/lib/modules/${_kernver}/modules.alias.bin
  /usr/lib/modules/${_kernver}/modules.devname"
 
-subpackages="linux-cachyos-bore-headers"
 
 # reproducible build
 export KBUILD_BUILD_TIMESTAMP=$(LC_ALL=C date -ud @${SOURCE_DATE_EPOCH:-0})
@@ -77,11 +76,9 @@ do_configure() {
 
 	make ARCH=x86_64 olddefconfig
 
-	# Disable module signing — required for DKMS (nvidia, etc.)
-	sed -i "s|^\(CONFIG_MODULE_SIG\)=y|\1=n|" .config
-	sed -i "s|^\(CONFIG_MODULE_SIG\)=m|\1=n|" .config
-	sed -i "s|^\(CONFIG_MODULE_SIG_ALL\)=y|\1=n|" .config
-	sed -i "s|^\(CONFIG_MODULE_SIG_ALL\)=m|\1=n|" .config
+	# Module signing is left enabled (CachyOS default) for Secure Boot compatibility.
+	# Built-in modules are signed with an ephemeral key generated during build.
+	# External modules (nvidia, etc.) must be MOK-signed on the target system.
 
 	# Enable BORE and latency-optimised settings
 	sed -i "s|^# \(CONFIG_SCHED_BORE\) is not set|\1=y|" .config
@@ -91,9 +88,11 @@ do_configure() {
 	sed -i "s|^# \(CONFIG_PREEMPT_DYNAMIC\) is not set|\1=y|" .config
 	sed -i "s|^\(CONFIG_PREEMPT_DYNAMIC\)=m|\1=y|" .config
 
-	# Disable AMDGPU driver (incomplete dc_plane_cm types in CachyOS 7.1/base)
+	# Disable AMDGPU and Nouveau drivers (black screen / incomplete support)
 	sed -i "s|^\(CONFIG_DRM_AMDGPU\)=m|\1=n|" .config
 	sed -i "s|^# \(CONFIG_DRM_AMDGPU\) is not set|\1=n|" .config
+	sed -i "s|^\(CONFIG_DRM_NOUVEAU\)=m|\1=n|" .config
+	sed -i "s|^# \(CONFIG_DRM_NOUVEAU\) is not set|\1=n|" .config
 
 	make ARCH=x86_64 olddefconfig
 }
